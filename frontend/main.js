@@ -12,14 +12,13 @@ function download () {
     file.on('stream', ({ stream, file, req }) => {
       if (req.destination === 'video') {
         console.log(`Video player requested data from ${file.name}! Ranges: ${req.headers.range}`)
+        console.log(player);
       }
     })
     // Stream to a <video> element by providing an the DOM element
     file.streamTo(player)
     console.log('Ready to play!')
-    console.log('Success!');
-    document.body.innerHTML = 'Success!';
-
+    
   })
 }
 
