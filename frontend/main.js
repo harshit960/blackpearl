@@ -5,7 +5,7 @@ const torrentId = 'magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&
 const player = document.querySelector('video')
 
 function download () {
-  client.add(torrentId, torrent => {
+  client.add(torrentId,async torrent => {
     // Torrents can contain many files. Let's use the .mp4 file
     const file = torrent.files.find(file => file.name.endsWith('.mp4'))
     // Log streams emitted by the video player
