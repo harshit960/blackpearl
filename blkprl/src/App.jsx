@@ -30,7 +30,7 @@ function App() {
 
     const download = () => {
       console.log(torrentId);
-      client.add(torrentId, async torrent => {
+      client.add(torrentId,{maxWebConns:55}, async torrent => {
 
         console.log(torrent.files);
         const file = torrent.files.find(file => file.name.endsWith('.mkv'));
