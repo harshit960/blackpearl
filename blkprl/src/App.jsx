@@ -33,7 +33,7 @@ function App() {
         file.on('stream', ({ stream, file, req }) => {
           if (req.destination === 'video') {
             console.log(`Video player requested data from ${file.name}! Ranges: ${req.headers.range}`);
-            console.log(videoRef.current);
+            // console.log(videoRef.current);
           }
         });
         file.streamTo(videoRef.current);
