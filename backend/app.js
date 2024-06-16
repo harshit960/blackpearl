@@ -2,7 +2,7 @@
 import fs from 'fs/promises';
 // import os from 'os';
 import path from 'path';
-import WebTorrent from 'webtorrent';
+const WebTorrent = require('webtorrent');
 import express from 'express';
 const app = express();
 
