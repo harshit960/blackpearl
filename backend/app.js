@@ -4,99 +4,46 @@ import fs from 'fs/promises';
 import path from 'path';
 import WebTorrent from 'webtorrent';
 import express from 'express';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const app = express();
 
+app.get('/hlo', async (req, res) => {
+return res.status(200).send(`Torrent and uploaded to S3`);
+})
+
 app.get('/', async (req, res) => {
-    const client = new WebTorrent();
-    const torrentId = "magnet:?xt=urn:btih:605614AECE99CB5898903C4E4D5B56D484879CDA&dn=Panchayat+S03E03+XviD-AFG&tr=http%3A%2F%2Fp4p.arenabg.com%3A1337%2Fannounce&tr=udp%3A%2F%2F47.ip-51-68-199.eu%3A6969%2Fannounce&tr=udp%3A%2F%2F9.rarbg.me%3A2780%2Fannounce&tr=udp%3A%2F%2F9.rarbg.to%3A2710%2Fannounce&tr=udp%3A%2F%2F9.rarbg.to%3A2730%2Fannounce&tr=udp%3A%2F%2F9.rarbg.to%3A2920%2Fannounce&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&tr=udp%3A%2F%2Fopentracker.i2p.rocks%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.cyberia.is%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.dler.org%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.internetwarriors.net%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=udp%3A%2F%2Ftracker.pirateparty.gr%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.tiny-vps.com%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce"
+    const client = new WebTorrent({maxConns: 1000});
+    const torrentId = "magnet:?xt=urn:btih:2770FE270845674966E184BE60ED1BE0FE494F3A&dn=Dune%20Part%20Two%20%282024%29%20%5b1080p%5d%20%5bWEBRip%5d%20%5bYTS.MX%5d&tr=http%3a%2f%2fp4p.arenabg.com%3a1337%2fannounce&tr=udp%3a%2f%2f47.ip-51-68-199.eu%3a6969%2fannounce&tr=%2audp%3a%2f%2f9.rarbg.me%3a2780%2fannounce&tr=udp%3a%2f%2f9.rarbg.to%3a2710%2fannounce&tr=udp%3a%2f%2f9.rarbg.to%3a2730%2fannounce&tr=udp%3a%2f%2f9.rarbg.to%3a2920%2fannounce&tr=udp%3a%2f%2fopen.stealth.si%3a80%2fannounce&tr=udp%3a%2f%2fopentracker.i2p.rocks%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.coppersurfer.tk%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.cyberia.is%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.dler.org%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.internetwarriors.net%3a1337%2fannounce&tr=udp%3a%2f%2ftracker.leechers-paradise.org%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.opentrackr.org%3a1337&tr=udp%3a%2f%2ftracker.pirateparty.gr%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.tiny-vps.com%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.torrent.eu.org%3a451%2fannounce&tr=wss%3a%2f%2fwstracker.online&tr=udp%3a%2f%2f9.rarbg.me%3a2780%2fannounce"
     console.log(torrentId);
     try {
-        client.add(torrentId, async torrent => {
-            // Got torrent metadata!
-            console.log('Client is downloading:', torrent.infoHash)
-            const files = torrent.files;
-            console.log(files);
-            for (const file of files) {
-                const filePath = path.join(file.name);
-                console.log(filePath);
-                const fileBuffer = await new Promise((resolve, reject) => {
-                    const chunks = [];
-                    file.createReadStream()
-                        .on('data', (chunk) => chunks.push(chunk))
-                        .on('end', () => resolve(Buffer.concat(chunks)))
-                        .on('error', reject);
-                });
-                await fs.writeFile(filePath, fileBuffer);
-                console.log(`File ${file.name} saved to ${filePath}`);
-            }
-            return res.status(200).send(`Torrent file ${client.name} downloaded and uploaded to S3`);
-        })
+        client.add(torrentId,{maxWebConns: 200, path: path.join(__dirname, 'vid') }, torrent => {
+            
+            torrent.on('done', () => {
+              console.log('torrent download finished')
+              client.destroy();
+            })
+            torrent.on('download', bytes => {
+            const speed = torrent.downloadSpeed / (1024 * 1024); // Convert bytes to megabytes
+            const time = Math.floor(torrent.timeRemaining / 1000); // Convert milliseconds to seconds
+            const minutes = Math.floor(time / 60);
+            const seconds = time % 60;
+            const percent = (torrent.progress * 100).toFixed(2);
+            const numConnections = torrent.numPeers;
+            const numPeers = torrent.numPeers;
+            process.stdout.write(`Download Speed: ${speed.toFixed(2)} mB/s, Time Remaining: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}, Progress: ${percent}%, Connections: ${numConnections}, Peers: ${numPeers}\r`);
+            // process.stdout.write(`Download Speed: ${speed.toFixed(2)} mB/s, Time Remaining: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}, Progress: ${percent}%\r`);
+            });
+
+          })
     } catch (error) {
         console.error('Error downloading or uploading torrent:', error);
         return res.status(500).send('Error downloading or uploading torrent');
     }
 });
 
-app.listen(10000, () => {
+app.listen(3000, () => {
     console.log('Server is running on port 3000');
 });
-// // const s3Client = new S3Client({ region: 'ap-south-1' }); // Replace 'your-region' with your AWS region
-
-// export const handler = async (event) => {
-//     const torrentId = "magnet:?xt=urn:btih:c9e15763f722f23e98a29decdfae341b98d53056&dn=Cosmos+Laundromat&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fcosmos-laundromat.torrent"; // URL of the torrent file
-//     // const tempDir = ""; // Get the temporary directory path
-//     console.log(torrentId);
-//     try {
-//         client.add(torrentId, async torrent => {
-//             // Got torrent metadata!
-//             console.log('Client is downloading:', torrent.infoHash)
-//             const files = torrent.files;
-//             // console.log(files);
-//             for (const file of files) {
-//                 const filePath = path.join(file.name);
-//                 console.log(filePath);
-//                 const fileBuffer = await new Promise((resolve, reject) => {
-//                     const chunks = [];
-//                     file.createReadStream()
-//                         .on('data', (chunk) => chunks.push(chunk))
-//                         .on('end', () => resolve(Buffer.concat(chunks)))
-//                         .on('error', reject);
-//                 });
-//                 await fs.writeFile(filePath, fileBuffer);
-//                 console.log(`File ${file.name} saved to ${filePath}`);
-//             }
-//             // for (const file of torrent.files) {
-//             //   document.body.append(file.name)
-//             // }
-//             return 4;
-//         })
-//         console.log(2);
-
-
-//         // const torrentFilePath = path.join(tempDir, torrent.name);
-//         // const torrentFileData = await fs.readFile(torrentFilePath);
-
-//         // Example: Upload the torrent file to S3
-//         // const s3Params = {
-//         //     Bucket: 'your-bucket-name',
-//         //     Key: `torrents/${torrent.name}`,
-//         //     Body: torrentFileData
-//         // };
-//         // await s3Client.send(new PutObjectCommand(s3Params));
-
-//         // // Cleanup: Remove the downloaded torrent file from temp directory
-//         // await fs.unlink(torrentFilePath);
-
-//         return {
-//             statusCode: 200,
-//             body: `Torrent file ${client.name} downloaded and uploaded to S3`
-//         };
-//     } catch (error) {
-//         console.error('Error downloading or uploading torrent:', error);
-//         return {
-//             statusCode: 500,
-//             body: 'Error downloading or uploading torrent'
-//         };
-//     }
-// };
-// // handler()
