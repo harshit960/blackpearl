@@ -30,7 +30,7 @@ function App() {
 
     const download = () => {
       console.log(torrentId);
-      client.add(torrentId,{maxWebConns:55}, async torrent => {
+      client.add(torrentId,{maxWebConns:4,destroyStoreOnDestroy: false,skipVerify: false}, async torrent => {
 
         console.log(torrent.files);
         const file = torrent.files.find(file => file.name.endsWith('.mkv'));
@@ -51,7 +51,9 @@ function App() {
         });
       });
     };
-
+    client.on('torrent', function (torrent) {
+      console.log("ready");
+    })
     const registerServiceWorker = async () => {
       try {
         const reg = await navigator.serviceWorker.register("./sw.min.js", { scope: './' });
